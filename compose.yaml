@@ -1,0 +1,24 @@
+# Local development database: Postgres 16 + pgvector.
+# Supabase in the cloud; plain Postgres locally — the schema and RLS are identical.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-swasthya}
+      SWASTHYA_API_DB_PASSWORD: ${SWASTHYA_API_DB_PASSWORD:?set SWASTHYA_API_DB_PASSWORD in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/db/create_roles.sql:/swasthya/create_roles.sql:ro
+      - swasthya-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  swasthya-db:

@@ -1,0 +1,16 @@
+[project]
+name = "swasthya-engines"
+version = "0.0.0"
+description = "Deterministic engines (no LLM calls) for Swasthya"
+requires-python = ">=3.12,<3.13"
+dependencies = ["swasthya-shared", "pyyaml>=6.0.3,<7"]
+
+[tool.uv.sources]
+swasthya-shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["swasthya_engines"]

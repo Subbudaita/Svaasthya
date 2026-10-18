@@ -1,0 +1,13 @@
+[project]
+name = "swasthya-shared"
+version = "0.0.0"
+description = "Cross-cutting constants and data-file access for Swasthya"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["swasthya_shared"]

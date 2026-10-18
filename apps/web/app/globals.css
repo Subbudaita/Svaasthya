@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Warm neutrals, one accent. No red/green moralising (docs/PLAN.md §7). */
+@theme {
+  --color-paper: #f7f3ee;
+  --color-ink: #2b2723;
+  --color-muted: #7a7168;
+  --color-line: #e3dcd3;
+  --color-accent: #b5653a;
+}
+
+/* Dark mode is first-class: the 21:30 check-in happens in a dark room. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #1b1917;
+    --color-ink: #ece6df;
+    --color-muted: #9b9188;
+    --color-line: #34302c;
+    --color-accent: #d98a5f;
+  }
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}

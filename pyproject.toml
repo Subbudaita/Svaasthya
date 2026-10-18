@@ -1,0 +1,43 @@
+[project]
+name = "swasthya"
+version = "0.0.0"
+description = "Swasthya — agentic personal health coach (monorepo root)"
+requires-python = ">=3.12,<3.13"
+dependencies = ["swasthya-api", "swasthya-shared", "swasthya-engines"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+swasthya-api = { workspace = true }
+swasthya-shared = { workspace = true }
+swasthya-engines = { workspace = true }
+
+[tool.uv.workspace]
+members = ["apps/api", "packages/shared", "packages/engines"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1,<10",
+    "pytest-asyncio>=1.4,<2",
+    "httpx>=0.28,<0.29",
+    "testcontainers[postgres]>=4.15,<5",
+    "ruff>=0.13",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["apps/api/tests", "packages/engines/tests", "packages/shared/tests", "tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers --import-mode=importlib"
+filterwarnings = [
+    # Third-party: Starlette's TestClient nudging towards httpx2.
+    "ignore:Using `httpx` with `starlette.testclient`",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]

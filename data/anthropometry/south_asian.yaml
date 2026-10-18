@@ -1,0 +1,37 @@
+# Anthropometric thresholds for South Asian adults.
+#
+# Swasthya is India-first: these replace WHO general-population cutoffs
+# (overweight BMI >= 25, obese >= 30), which under-classify risk in South Asians,
+# who carry more visceral and ectopic fat at any given BMI. See docs/PLAN.md §3.
+#
+# Sources:
+#   - WHO Expert Consultation (2004). Appropriate body-mass index for Asian
+#     populations. Lancet 363:157-163.
+#   - Misra A, et al. (2009). Consensus statement for diagnosis of obesity,
+#     abdominal obesity and the metabolic syndrome for Asian Indians.
+#     J Assoc Physicians India 57:163-170.
+#   - IDF (2006). Worldwide definition of the metabolic syndrome — South Asian
+#     ethnic-specific waist circumference values.
+#
+# Bands are half-open: lower bound inclusive, upper bound exclusive.
+version: "2026-10-18"
+population: south_asian_adult
+
+bmi_kg_m2:
+  - category: underweight
+    min: null
+    max: 18.5
+  - category: normal
+    min: 18.5
+    max: 23.0
+  - category: overweight
+    min: 23.0
+    max: 25.0
+  - category: obese
+    min: 25.0
+    max: null
+
+# Waist circumference at or above which abdominal obesity is flagged.
+waist_cm_at_risk:
+  male: 90
+  female: 80
