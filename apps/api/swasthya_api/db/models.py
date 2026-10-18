@@ -44,7 +44,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 LOG_METHODS = ("photo", "voice", "quick_pick", "text", "repeat")
@@ -360,8 +360,14 @@ class MemoryFact(Base):
     source_ref: Mapped[uuid.UUID | None]
     # Dimension is fixed when the embedding model is chosen (Phase 3).
     embedding: Mapped[Any | None] = mapped_column(Vector())
+    # Full-text search until an embedding provider is configured.
+    fact_tsv: Mapped[Any] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', fact)", persisted=True)
+    )
     superseded_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (Index("memory_facts_fact_tsv_idx", "fact_tsv", postgresql_using="gin"),)
 
 
 # --- Causal memory ----------------------------------------------------------
@@ -600,6 +606,33 @@ class RitualRun(Base):
         UniqueConstraint("user_id", "ritual", "local_date", name="ritual_runs_user_day_key"),
         CheckConstraint(_in("ritual", RITUALS), name="ritual_valid"),
         CheckConstraint(_in("status", RITUAL_STATUSES), name="status_valid"),
+    )
+
+
+NUDGE_DECISIONS = ("send", "suppressed")
+
+
+class JitaiNudge(Base):
+    """Every JITAI decision that matched a rule — sent or suppressed — with its outcome."""
+
+    __tablename__ = "jitai_nudges"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    rule_id: Mapped[str] = mapped_column(Text)
+    local_date: Mapped[date]
+    decided_at: Mapped[datetime]
+    decision: Mapped[str] = mapped_column(Text)
+    suppressed_because: Mapped[str | None] = mapped_column(Text)
+    tailoring: Mapped[dict[str, Any]] = _jsonb_obj()
+    message: Mapped[str] = mapped_column(Text)
+    outcome_name: Mapped[str] = mapped_column(Text)
+    outcome_met: Mapped[bool | None]
+    outcome_scored_at: Mapped[datetime | None]
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "rule_id", "local_date", name="jitai_nudges_user_rule_day_key"),
+        CheckConstraint(_in("decision", NUDGE_DECISIONS), name="decision_valid"),
     )
 
 

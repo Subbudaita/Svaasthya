@@ -4,8 +4,9 @@ An agentic personal health coach that explains *why* progress is or isn't
 happening. Condition-aware, India-first, referral-first. The full requirements
 and architecture are in [`docs/PLAN.md`](docs/PLAN.md). Read it first.
 
-**Status: Phase 2 (Contract, rituals, behaviour engine)** on top of
-**Phase 1 (Ingestion & multi-method logging).** Photograph a plate on
+**Status: Phase 3 (Agents + JITAI).** On top of Phase 2 (contract, rituals,
+behaviour engine) and Phase 1 (multi-method logging). **New here? Start with
+[docs/SETUP.md](docs/SETUP.md).** Photograph a plate on
 Telegram and get back what's on it plus one sentence on its balance. Every
 number comes from the Indian Nutrient Databank, never from the model. Built
 on Phase 0: schema with row-level security, an authenticated API, and a
@@ -179,6 +180,31 @@ Reply `OK` to accept, or `/onboard` to answer again. From the next day:
 
 Design notes: [ADR 0003](docs/adr/0003-ritual-scheduling.md) (exactly-once
 rituals; a missed one is a logged incident).
+
+## The coach (Phase 3)
+
+Any message that isn't a command goes to the coach, in Telegram or via
+`POST /v1/chat`. Both are **one conversation**: start on Telegram at lunch,
+continue in the app at night.
+
+- A Haiku router picks one of seven specialists: Nutrition & Gut, Movement,
+  Circadian, Mind, Clinical, Adherence, Insight.
+- Sonnet answers from your own data. Today and the last three days are in
+  context; it calls tools for older days, stored facts, and food values from
+  INDB. Each answer cites the contract clauses and days it used, and says
+  how confident it is. Citations are checked, and the answer is audited.
+- **Safety before Phase 5:** emergencies such as chest pain, fainting or
+  self-harm halt coaching and point to 112 / Tele-MANAS 14416, with no model
+  involved. An output guard blocks diagnoses, medicine or dose changes, and
+  calories during Reset.
+- **Nudges (JITAI):** at most two a week, only when your data predicts a
+  lapse:
+  - before your usual energy dip after a short night;
+  - mid-morning when breakfast hasn't happened and has been slipping;
+  - before the kitchen closes when late dinners have been recurring.
+  Each nudge is scored the next morning on what happened after it.
+
+Design: [ADR 0004](docs/adr/0004-agent-architecture.md).
 
 ## Connecting Supabase (needs an account)
 

@@ -1,4 +1,4 @@
-"""The always-on worker: ritual scheduler + (locally) the Telegram poller.
+"""The always-on worker: rituals + JITAI nudges + (locally) the Telegram poller.
 
     uv run --env-file .env python -m swasthya_api.worker
 
@@ -14,6 +14,7 @@ import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from swasthya_api.nudges import NudgeService
 from swasthya_api.rituals import RitualService
 from swasthya_api.services import build_services
 from swasthya_api.settings import get_settings
@@ -47,9 +48,13 @@ async def main() -> None:
     gw = BotGateway(settings.telegram_bot_token)
     rituals = RitualService(services, gw)
 
+    nudges = NudgeService(services, gw)
+
     async def tick() -> None:
         for user_id, ritual, status in await rituals.tick():
             log.info("ritual %s → %s: %s", ritual, user_id, status)
+        for user_id, rule, decision in await nudges.tick():
+            log.info("jitai %s → %s: %s", rule, user_id, decision)
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(

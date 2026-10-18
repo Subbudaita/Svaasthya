@@ -299,6 +299,10 @@ class RitualService:
             if yesterday >= c.started_on
             else []
         )
+        if yesterday >= c.started_on:
+            from swasthya_api.nudges import NudgeService  # imports this module
+
+            await NudgeService(self.svc, self.gw).score_outcomes(c.user_id, yesterday, c.tz, now)
         labels = dict(pillar_labels())
         async with user_session(self.svc.engine, c.user_id) as session:
             contract = await self._contract(session)

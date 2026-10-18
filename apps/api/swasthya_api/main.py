@@ -6,13 +6,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from swasthya_agents.graph import AgentError
 from swasthya_ingestion.images import InvalidImageError
 from swasthya_ingestion.plate_agent import PerceptionError, PerceptionRefused
 
 from swasthya_api import __version__
 from swasthya_api.budget import TokenCapExceeded
 from swasthya_api.meals import MealNotFound, NotAMeal
-from swasthya_api.routes import channels, health, me, meals, program
+from swasthya_api.routes import channels, chat, health, me, meals, program
 from swasthya_api.services import FeatureUnavailable, build_services
 from swasthya_api.settings import Settings, get_settings
 
@@ -59,6 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(MealNotFound, _error(404, "meal_not_found"))
     app.add_exception_handler(PerceptionRefused, _error(422, "perception_refused"))
     app.add_exception_handler(PerceptionError, _error(502, "perception_failed"))
+    app.add_exception_handler(AgentError, _error(502, "agent_failed"))
 
     app.dependency_overrides[get_settings] = lambda: settings
     app.include_router(health.router)
@@ -66,4 +68,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(meals.router)
     app.include_router(channels.router)
     app.include_router(program.router)
+    app.include_router(chat.router)
     return app

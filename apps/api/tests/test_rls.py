@@ -11,6 +11,7 @@ import uuid
 import psycopg
 import pytest
 from psycopg import errors
+from swasthya_api.db.migration_filters import CHECKPOINT_TABLES
 from swasthya_api.db.models import TENANT_TABLES
 
 # One minimal row per tenant table: (table, columns-and-values beyond user_id).
@@ -46,6 +47,14 @@ SAMPLE_ROWS: dict[str, dict[str, object]] = {
     "accountability_contacts": {"name_and_relation": "Anu, sister", "agreed": True},
     "pillar_days": {"pillar": "sleep", "day": "2026-10-01", "result": "met"},
     "ritual_runs": {"ritual": "morning_brief", "local_date": "2026-10-01", "status": "sent"},
+    "jitai_nudges": {
+        "rule_id": "energy_dip",
+        "local_date": "2026-10-01",
+        "decided_at": "2026-10-01T15:30:00+05:30",
+        "decision": "send",
+        "message": "m",
+        "outcome_name": "o",
+    },
     "channel_link_codes": {
         "channel": "telegram",
         "code_hash": "__unique__",
@@ -82,7 +91,9 @@ def test_every_table_has_forced_rls_and_a_policy(admin_conn):
         """
     ).fetchall()
     tables = {r[0]: r[1:] for r in rows}
-    assert set(tables) == {"users", *TENANT_TABLES}, "a table was added without RLS review"
+    assert set(tables) == {"users", *TENANT_TABLES, *CHECKPOINT_TABLES}, (
+        "a table was added without RLS review"
+    )
     for name, (enabled, forced, policies) in tables.items():
         assert enabled, f"{name}: RLS not enabled"
         assert forced, f"{name}: RLS not forced (owner would bypass it)"
@@ -353,3 +364,37 @@ def test_ritual_candidates_reveal_only_scheduling_fields(make_user, as_user, adm
         "evening_checkin_at",
         "telegram_id",
     ]
+
+
+def test_agent_checkpoints_are_isolated_by_thread(make_user, as_user):
+    """Conversation state is health data: a thread is one person, enforced by RLS."""
+    alice, bob = make_user(), make_user()
+    sql = (
+        "INSERT INTO checkpoints (thread_id, checkpoint_id, checkpoint, metadata) "
+        "VALUES (%s, 'c1', '{}', '{}')"
+    )
+    with as_user(alice) as conn:
+        conn.execute(sql, (str(alice),))
+        assert _count(conn, "checkpoints") == 1
+    with as_user(bob) as conn:
+        assert _count(conn, "checkpoints") == 0
+    with pytest.raises(errors.InsufficientPrivilege):
+        with as_user(bob) as conn:
+            conn.execute(sql.replace("'c1'", "'c2'"), (str(alice),))  # write into Alice's thread
+    with pytest.raises(errors.InsufficientPrivilege):
+        with as_user(alice) as conn:
+            conn.execute("SELECT * FROM checkpoint_migrations")  # bookkeeping is owner-only
+
+
+def test_checkpointer_migrations_pinned():
+    """A library upgrade that adds a schema migration must come with a new Alembic one."""
+    import importlib.util  # noqa: E401
+    import pathlib
+
+    from langgraph.checkpoint.postgres.base import BasePostgresSaver
+
+    path = next(pathlib.Path(__file__).parents[1].glob("migrations/versions/0004_*.py"))
+    spec = importlib.util.spec_from_file_location("m0004", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert len(BasePostgresSaver.MIGRATIONS) == len(mod.CHECKPOINT_SQL)

@@ -7,6 +7,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from psycopg import errors
 from sqlalchemy import create_engine
+from swasthya_api.db.migration_filters import include_object
 from swasthya_api.db.models import Base
 
 
@@ -24,7 +25,8 @@ def test_downgrade_then_upgrade_is_clean(alembic_cfg, app_url, admin_url):
 def test_models_match_migrations(admin_url, app_url):
     engine = create_engine(admin_url)
     with engine.connect() as conn:
-        diff = compare_metadata(MigrationContext.configure(conn), Base.metadata)
+        ctx = MigrationContext.configure(conn, opts={"include_object": include_object})
+        diff = compare_metadata(ctx, Base.metadata)
     engine.dispose()
     assert diff == [], f"models and migrations disagree: {diff}"
 

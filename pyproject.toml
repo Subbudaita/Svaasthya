@@ -3,7 +3,7 @@ name = "swasthya"
 version = "0.0.0"
 description = "Swasthya — agentic personal health coach (monorepo root)"
 requires-python = ">=3.12,<3.13"
-dependencies = ["swasthya-api", "swasthya-shared", "swasthya-engines", "swasthya-ingestion"]
+dependencies = ["swasthya-api", "swasthya-shared", "swasthya-engines", "swasthya-ingestion", "swasthya-agents"]
 
 [tool.uv]
 package = false
@@ -13,9 +13,10 @@ swasthya-api = { workspace = true }
 swasthya-shared = { workspace = true }
 swasthya-engines = { workspace = true }
 swasthya-ingestion = { workspace = true }
+swasthya-agents = { workspace = true }
 
 [tool.uv.workspace]
-members = ["apps/api", "packages/shared", "packages/engines", "packages/ingestion"]
+members = ["apps/api", "packages/shared", "packages/engines", "packages/ingestion", "packages/agents"]
 
 [dependency-groups]
 dev = [
@@ -29,7 +30,7 @@ dev = [
 data = ["openpyxl>=3.1,<4"]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "packages/engines/tests", "packages/shared/tests", "packages/ingestion/tests", "evals", "tests"]
+testpaths = ["apps/api/tests", "packages/engines/tests", "packages/shared/tests", "packages/ingestion/tests", "packages/agents/tests", "evals", "tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --strict-markers --import-mode=importlib"

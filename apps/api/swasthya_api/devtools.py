@@ -41,15 +41,43 @@ async def create_user(email: str, timezone: str | None) -> None:
     print(f"\nIn Telegram, send your bot:  /start {code}")
 
 
+async def ask(user_id: str, question: str) -> None:
+    """Ask the coach a question as a user, e.g. "why am I so tired today?"."""
+    from swasthya_api.chat import ChatService
+
+    settings = get_settings()
+    if settings.env == Environment.PRODUCTION:
+        raise SystemExit("devtools are disabled in production")
+    from swasthya_api.services import FeatureUnavailable
+
+    services = await build_services(settings)
+    try:
+        r = await ChatService(services).reply(uuid.UUID(user_id), question, channel="pwa")
+    except FeatureUnavailable as exc:
+        raise SystemExit(f"Can't ask yet: {exc} (see docs/SETUP.md)") from exc
+    finally:
+        await services.aclose()
+    print(r.text)
+    print(
+        f"\n[{r.specialist} · confidence {r.confidence} · clauses {r.cited_clauses} · "
+        f"days {r.cited_days} · guard {r.guard_action}]"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="swasthya_api.devtools")
     sub = parser.add_subparsers(dest="cmd", required=True)
     cu = sub.add_parser("create-user", help="create a local user and print a Telegram link code")
     cu.add_argument("--email", required=True)
     cu.add_argument("--timezone", help="IANA zone, default DEFAULT_TIMEZONE")
+    q = sub.add_parser("ask", help="ask the coach a question as a user")
+    q.add_argument("--user-id", required=True)
+    q.add_argument("question")
     args = parser.parse_args()
     if args.cmd == "create-user":
         asyncio.run(create_user(args.email, args.timezone))
+    elif args.cmd == "ask":
+        asyncio.run(ask(args.user_id, args.question))
 
 
 if __name__ == "__main__":

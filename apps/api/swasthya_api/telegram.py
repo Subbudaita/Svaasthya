@@ -226,7 +226,15 @@ async def _handle(update: dict[str, Any], services: Services, gw: TelegramGatewa
             )
             return
 
-    await gw.send_message(chat_id, HELP)
+    if text.startswith("/help") or text.startswith("/") or not text:
+        await gw.send_message(chat_id, HELP)
+        return
+
+    # Anything else is a conversation with the coach (F14).
+    from swasthya_api.chat import safe_reply
+
+    await gw.typing(chat_id)
+    await gw.send_message(chat_id, await safe_reply(services, user_id, text, CHANNEL))
 
 
 async def _send_reply(gw: TelegramGateway, chat_id: int, reply: Reply) -> None:

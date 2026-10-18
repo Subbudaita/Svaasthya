@@ -1,5 +1,5 @@
 # Convenience targets. Each is a one-liner you can also run by hand (see README).
-.PHONY: install db migrate indb dev-user api telegram web test lint eval-vision
+.PHONY: install db migrate indb dev-user ask api telegram web test lint eval-vision
 
 INDB_REPO := https://github.com/lindsayjaacks/indian-nutrient-databank-indb-
 INDB_DIR := var/indb
@@ -23,6 +23,11 @@ indb:
 dev-user:
 	@test -n "$(EMAIL)" || (echo "usage: make dev-user EMAIL=you@example.com" && exit 1)
 	uv run --env-file .env python -m swasthya_api.devtools create-user --email $(EMAIL)
+
+# Ask the coach as a user:  make ask USER=<user id> Q="why am I so tired today?"
+ask:
+	@test -n "$(USER_ID)$(USER)" || (echo 'usage: make ask USER_ID=<id> Q="..."' && exit 1)
+	uv run --env-file .env python -m swasthya_api.devtools ask --user-id $(or $(USER_ID),$(USER)) "$(Q)"
 
 api:
 	uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload

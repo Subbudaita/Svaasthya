@@ -1,0 +1,18 @@
+# STOPGAP inbound red-flag screen (deterministic) until the Phase 5 Haiku
+# classifier lands. On a match, coaching halts and the person is pointed to
+# help. Over-triggering is acceptable here; missing one is not.
+version: "2026-10-18"
+patterns:
+  cardiac: ['chest (pain|tightness|pressure)', 'pain (in|down) my (left )?arm', 'heart attack']
+  breathing: ["can'?t breathe", 'short(ness)? of breath', 'breathless at rest']
+  syncope: ['faint(ed)?', 'passed out', 'blacked out', 'unconscious']
+  self_harm: ['suicid', 'kill myself', 'end (my|it all)', 'self[- ]harm', "don'?t want to (live|be alive)", 'better off dead']
+  hypoglycaemia: ['(sugar|glucose) (is |was |of )?(below |under )?([1-5]\d|60|6\d)\b', '\bhypo\b', 'hypoglyc', 'shaking and (sweating|confused)']
+  bleeding: ['vomit(ing|ed)? blood', 'blood in (my )?(stool|vomit)', 'black (tarry )?stool']
+  weight_loss: ['lost \d+ ?kg (in|within) (a|one|1|two|2) (week|weeks)', "losing weight without (trying|eating less)"]
+reply: >-
+  I'm stopping the coaching here, because what you describe needs a person, now.
+  If this is happening right now, call 112 (emergency) or go to the nearest
+  emergency department. If you're having thoughts of harming yourself, you can
+  call Tele-MANAS on 14416, any time, free. Please also tell someone near you.
+  When you're safe, I'm here.

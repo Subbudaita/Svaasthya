@@ -1,0 +1,44 @@
+# Just-in-time adaptive interventions (docs/PLAN.md F5, §3, §5).
+#
+# A nudge fires only when a decision rule predicts a lapse at a genuinely
+# opportune moment. Each rule targets one of the three failure modes in the
+# acceptance test: energy dips, unplanned breakfasts, unstructured dinners.
+#
+# Decision point: the rule's local time `at`, for `window_minutes` after it.
+# All conditions must hold. Message placeholders are filled from tailoring
+# variables computed by swasthya_engines.jitai — never by a model.
+version: "2026-10-18"
+weekly_cap: 2              # hard cap, rolling 7 days
+daily_cap: 1
+quiet_around_rituals_minutes: 60
+window_minutes: 15
+rules:
+  - id: energy_dip
+    failure_mode: energy_dips
+    at: {anchor: energy_dip_time, offset_minutes: -30}
+    when: [has_energy_dip_time, short_sleep_last_night]
+    outcome: protein_logged_within_120_min
+    message: >-
+      Your usual {energy_dip} dip is close, and last night's sleep was short. Something with
+      protein now (roasted chana, a katori of curd, sprouts) and a glass of water usually beats
+      the biscuit that comes at the bottom of the dip.
+  - id: breakfast_unplanned
+    failure_mode: unplanned_breakfasts
+    at: {anchor: window_open, offset_minutes: 90}
+    when: [no_meal_logged_today, breakfast_slipped_recently]
+    outcome: meal_logged_within_180_min
+    message: >-
+      No breakfast logged yet. This morning's plan was {breakfast}. If that isn't happening,
+      anything with protein in the next hour keeps the afternoon steadier.
+  - id: dinner_unstructured
+    failure_mode: unstructured_dinners
+    at: {anchor: window_close, offset_minutes: -75}
+    when: [no_dinner_logged_yet, late_lapses_recently]
+    outcome: window_kept_today
+    message: >-
+      The kitchen closes at {window_close}. On {late_lapses} of the last 7 days the last bite
+      came after that, usually around {lapse_clock}. Deciding dinner now, even "2 roti, dal,
+      sabzi", is what keeps tonight inside the window.
+thresholds:
+  late_lapses_recently: 2          # late last bites in the last 7 days
+  breakfast_slipped_recently: 2    # days without breakfast in the last 7

@@ -16,6 +16,7 @@ dependencies = [
     "pyjwt[crypto]>=2.15,<3",
     "swasthya-engines",
     "swasthya-ingestion",
+    "swasthya-agents",
     "python-multipart>=0.0.32,<0.1",
     "python-telegram-bot>=22.8,<23",
     "apscheduler>=3.11,<4",
@@ -25,6 +26,7 @@ dependencies = [
 swasthya-shared = { workspace = true }
 swasthya-engines = { workspace = true }
 swasthya-ingestion = { workspace = true }
+swasthya-agents = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.27"]

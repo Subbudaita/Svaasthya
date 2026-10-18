@@ -280,3 +280,42 @@ def jpeg_bytes() -> bytes:
 @pytest.fixture(name="item")
 def _item_fixture():
     return plate_item
+
+
+def _route_msg(specialist):
+    return _message(
+        [
+            {
+                "type": "tool_use",
+                "id": "r",
+                "name": "route",
+                "input": {"specialist": specialist, "reason": "test"},
+            }
+        ],
+        "tool_use",
+    )
+
+
+def _answer_msg(reply, clauses=(), days=(), confidence="medium"):
+    import json
+
+    return _message(
+        [
+            {
+                "type": "text",
+                "text": json.dumps(
+                    {
+                        "reply": reply,
+                        "cited_clauses": list(clauses),
+                        "cited_days": list(days),
+                        "confidence": confidence,
+                    }
+                ),
+            }
+        ],
+        "end_turn",
+    )
+
+
+ScriptedAnthropic.will_route = lambda self, s: self.perceptions.append(_route_msg(s))
+ScriptedAnthropic.will_answer = lambda self, *a, **k: self.perceptions.append(_answer_msg(*a, **k))

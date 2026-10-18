@@ -8,6 +8,7 @@ import os
 
 from alembic import context
 from sqlalchemy import create_engine, pool
+from swasthya_api.db.migration_filters import include_object
 from swasthya_api.db.models import Base
 
 config = context.config
@@ -22,7 +23,12 @@ def _url() -> str:
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=_url(), target_metadata=target_metadata, literal_binds=True)
+    context.configure(
+        url=_url(),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        include_object=include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -30,13 +36,21 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     connectable = config.attributes.get("connection")
     if connectable is not None:
-        context.configure(connection=connectable, target_metadata=target_metadata)
+        context.configure(
+            connection=connectable,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
         with context.begin_transaction():
             context.run_migrations()
         return
     engine = create_engine(_url(), poolclass=pool.NullPool)
     with engine.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
         with context.begin_transaction():
             context.run_migrations()
 
