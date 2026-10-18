@@ -1,0 +1,26 @@
+# Eating-window derivation and progression (docs/PLAN.md §4,
+# "derive parameters, never ask for them"). All times are local.
+version: "2026-10-18"
+# Last bite at least this long before usual sleep.
+close_before_sleep_minutes: 180
+# Minimum window length (narrowest allowed), by phase.
+floor_minutes:
+  reset: 720     # 12 h
+  rebuild: 600   # 10 h — the destination, not 16:8
+  sustain: 600
+# Starting proposal: the phase floor, but never more than this below the observed
+# baseline in one go (13 h 40 observed → 12 h; 15 h observed → 13 h, not 12 h).
+# A product heuristic consistent with the plan's worked example.
+max_initial_reduction_minutes: 120
+progression:
+  hold_days_min: 7
+  hold_days_max: 10
+  adherence_gate: 0.8       # share of scored days the window was kept
+  step_minutes_min: 15
+  step_minutes_max: 30
+  consecutive_failures_for_review: 2
+  # Gates beyond adherence: compare the second half of the hold period with the first.
+  energy_drop_allowed: 0.5      # on the 1-5 scale
+  sleep_drop_allowed_minutes: 20
+# A day counts as "window kept" if first and last bite fall inside, give or take:
+tolerance_minutes: 15

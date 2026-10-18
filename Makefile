@@ -27,9 +27,9 @@ dev-user:
 api:
 	uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload
 
-# Telegram bot by long polling (local; no public URL needed).
+# The worker: ritual scheduler + Telegram bot by long polling (no public URL needed).
 telegram:
-	uv run --env-file .env python -m swasthya_api.telegram_poll
+	uv run --env-file .env python -m swasthya_api.worker
 
 web:
 	cd apps/web && npm run dev

@@ -1,0 +1,22 @@
+# The 21:30 check-in asks exactly one causal question (F4). The first entry
+# whose trigger matches today's data is asked; the answer is stored as a fact.
+version: "2026-10-18"
+questions:
+  - id: late_last_bite
+    when: last_bite_after_window
+    text: Your last bite today was after your window. What pushed it late?
+  - id: early_first_bite
+    when: first_bite_before_window
+    text: You started eating earlier than planned today. What happened this morning?
+  - id: low_energy
+    when: energy_low
+    text: Energy was low today. When did it dip, and what had you eaten before it?
+  - id: no_protein_meal
+    when: meal_without_protein
+    text: One meal today had no clear protein. What made that the easy option?
+  - id: no_logs
+    when: nothing_logged
+    text: Nothing was logged today. What got in the way — time, forgetting, or something else?
+  - id: default
+    when: always
+    text: What was the one thing that made today easier or harder than usual?

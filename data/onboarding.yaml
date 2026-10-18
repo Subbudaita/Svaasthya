@@ -1,0 +1,123 @@
+# Onboarding script (F1). Ask about life, derive parameters (docs/PLAN.md §4).
+# Nothing here asks the user to choose a target: no "what window do you want".
+#
+# kinds:  consent | text | number | time | optional_time | yesno | choice | list
+#   time           "7", "7:30", "7.30am", "19:30", "10 pm"
+#   optional_time  a time, or no/none/skip
+#   list           comma-separated; "none"/"skip" → []
+version: "2026-10-18"
+steps:
+  - id: consent
+    kind: consent
+    prompt: "Before we start: {disclaimer}\n\nReply YES to agree and continue."
+  - id: goal
+    kind: text
+    prompt: In your own words, what do you want to be different six months from now?
+  - id: sex
+    kind: choice
+    options: [male, female, other]
+    prompt: "For body measurements, which applies: male, female or other?"
+  - id: birth_year
+    kind: number
+    min: 1920
+    max: 2010
+    prompt: What year were you born?
+  - id: height_cm
+    kind: number
+    min: 120
+    max: 230
+    prompt: Your height in cm?
+  - id: weight_kg
+    kind: number
+    min: 30
+    max: 250
+    prompt: Your weight this morning, in kg?
+  - id: waist_cm
+    kind: number
+    optional: true
+    min: 50
+    max: 200
+    prompt: Your waist in cm, measured at the navel? (or "skip" if you don't have a tape yet)
+  - id: pregnant_or_breastfeeding
+    kind: yesno
+    only_if: {sex: [female, other]}
+    prompt: Are you pregnant or breastfeeding?
+  - id: type_1_diabetes
+    kind: yesno
+    prompt: Has a doctor told you that you have type 1 diabetes?
+  - id: insulin_or_sulfonylurea
+    kind: yesno
+    prompt: Do you take insulin, or diabetes tablets like glimepiride or gliclazide?
+  - id: kidney_disease
+    kind: yesno
+    prompt: Has a doctor told you that you have kidney disease?
+  - id: eating_disorder_history
+    kind: yesno
+    prompt: Have you ever had an eating disorder, or been treated for one?
+  - id: warfarin
+    kind: yesno
+    prompt: Do you take a blood thinner like warfarin?
+  - id: thyroid_medication
+    kind: yesno
+    prompt: Do you take thyroid medication?
+  - id: glp1_medication
+    kind: yesno
+    prompt: Are you on, or recently off, a GLP-1 medicine (semaglutide/Ozempic/Wegovy, tirzepatide/Mounjaro)?
+  - id: conditions
+    kind: list
+    prompt: Any other conditions a doctor has mentioned — prediabetes, BP, PCOS, ulcer or acidity, fatty liver? List them, or "none".
+  - id: medication_context
+    kind: text
+    optional: true
+    prompt: Anything else you take regularly (medicines, supplements)? One line is enough, or "skip".
+  - id: meds_with_food
+    kind: yesno
+    prompt: Do any of your medicines have to be taken with food?
+  - id: diet_pattern
+    kind: choice
+    options: [vegetarian, eggetarian, non_vegetarian, vegan, jain]
+    prompt: "How do you eat: vegetarian, eggetarian, non_vegetarian, vegan or jain?"
+  - id: wake_time
+    kind: time
+    prompt: What time do you usually wake up?
+  - id: sleep_time
+    kind: time
+    prompt: And what time do you usually fall asleep?
+  - id: first_bite_yesterday
+    kind: time
+    prompt: Think about yesterday. What time was your first bite or sip of anything other than water (tea counts)?
+  - id: last_bite_yesterday
+    kind: time
+    prompt: And what time was your last bite yesterday?
+  - id: family_dinner_end
+    kind: optional_time
+    prompt: Do you eat dinner with family at a fixed time? If so, what time does it usually finish? (or "no")
+  - id: work_pattern
+    kind: choice
+    options: [office, home, shifts, other]
+    prompt: "Your work pattern: office, home, shifts or other?"
+  - id: energy_dip_time
+    kind: optional_time
+    prompt: Is there a time of day your energy usually crashes? (a time, or "no")
+  - id: training_time
+    kind: optional_time
+    prompt: Do you exercise at a regular time? (a time, or "no")
+  - id: walking
+    kind: choice
+    options: [under_2km, 2_to_5km, over_5km]
+    prompt: "On a usual day, how much do you walk: under_2km, 2_to_5km or over_5km?"
+  - id: fasting_days
+    kind: list
+    prompt: Do you fast on any days for religious or personal reasons (e.g. Tuesday, Ekadashi, Navratri)? List them, or "none".
+  - id: rewards
+    kind: list
+    min_items: 1
+    prompt: Name two or three non-food things you'd genuinely enjoy as a treat — a book, new shoes, a massage, a day trip.
+  - id: accountability
+    kind: text
+    optional: true
+    prompt: "Last one, and it matters: name one real person who would read a short weekly note about how you're doing, and how they're related to you (e.g. \"Anu, my sister\"). Or \"skip\" for now."
+  - id: accountability_agreed
+    kind: yesno
+    only_if_answered: accountability
+    prompt: Have they agreed to read it?

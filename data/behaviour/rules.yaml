@@ -1,0 +1,20 @@
+# Behaviour engine rules (docs/PLAN.md §3, §5).
+version: "2026-10-18"
+# Per consistency track (six independent tracks, never one global streak).
+grace_days_per_track_per_month: 2
+# Retroactive recognition at these run lengths. Rewards are never pre-announced.
+reward_milestones_days: [14, 30, 60]
+# Rewards are outcome-based only in Sustain; process-based before.
+outcome_rewards_from_phase: sustain
+# If-then plans: retire once automatic.
+if_then_max_active: 2
+if_then_retire_after_executions: 14
+if_then_retire_success_rate: 0.9
+# Identity framing, never "14 🔥".
+identity:
+  nutrition: someone who puts protein on every plate
+  eating_window: someone whose kitchen closes on time
+  movement: someone who walks after meals
+  sleep: someone who goes to bed on time
+  hydration: someone who drinks water without thinking about it
+  mind: someone who checks in honestly, even on bad days

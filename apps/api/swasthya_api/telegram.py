@@ -7,14 +7,15 @@ message text.
 """
 
 import logging
-from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any, Protocol
+from datetime import date, time
+from typing import Any
 
+from swasthya_engines.clock import parse_time
 from swasthya_ingestion.images import InvalidImageError
 from swasthya_ingestion.plate_agent import PerceptionError
 
 from swasthya_api.budget import TokenCapExceeded
+from swasthya_api.gateway import Button, TelegramGateway
 from swasthya_api.meals import (
     MealNotFound,
     MealService,
@@ -23,6 +24,7 @@ from swasthya_api.meals import (
     redeem_link_code,
     resolve_channel_user,
 )
+from swasthya_api.program import ProgramService, Reply
 from swasthya_api.services import FeatureUnavailable, Services
 
 log = logging.getLogger(__name__)
@@ -30,39 +32,18 @@ CHANNEL = "telegram"
 
 HELP = (
     "Send me a photo of your plate and I'll log it.\n"
+    "New here? /onboard sets up your program.\n"
     "Other ways to log:\n"
     "  /log 2 roti, dal, bhindi — describe it\n"
     "  /same — same as yesterday's meal at this time\n"
     "  /picks — your usual meals, one tap\n"
-    "Wrong item? Reply to my message with what it actually was."
+    "Wrong item? Reply to my message with what it actually was.\n"
+    "/time morning 06:45 or /time evening 21:00 moves your rituals."
 )
 NOT_LINKED = (
     "This bot is invite-only. Open Swasthya, get a link code, and send it here as:\n/start YOURCODE"
 )
 FIX_HINT = "\n\nWrong? Reply to this message with what it actually was."
-
-
-@dataclass(frozen=True)
-class Button:
-    text: str
-    callback_data: str
-
-
-class TelegramGateway(Protocol):
-    async def send_message(
-        self,
-        chat_id: int,
-        text: str,
-        *,
-        reply_to: int | None = None,
-        buttons: Sequence[Button] = (),
-    ) -> int: ...
-
-    async def download_file(self, file_id: str) -> bytes: ...
-
-    async def answer_callback(self, callback_id: str) -> None: ...
-
-    async def typing(self, chat_id: int) -> None: ...
 
 
 def _ref(chat_id: int, message_id: int) -> str:
@@ -100,7 +81,7 @@ async def _handle(update: dict[str, Any], services: Services, gw: TelegramGatewa
     meals = MealService(services)
 
     if callback := update.get("callback_query"):
-        await gw.answer_callback(callback["id"])
+        await gw.answer_callback(callback["id"], "Noted")
         user_id = await resolve_channel_user(services, CHANNEL, str(callback["from"]["id"]))
         chat_id = callback["message"]["chat"]["id"]
         if user_id is None:
@@ -115,6 +96,16 @@ async def _handle(update: dict[str, Any], services: Services, gw: TelegramGatewa
                 user_id,
                 None,
                 lambda: meals.log_quick_pick(user_id, _uuid(data[5:])),
+            )
+        elif data.startswith("ob:"):
+            reply = await ProgramService(services).answer(user_id, data[3:])
+            await _send_reply(gw, chat_id, reply)
+        elif data.startswith("ci:"):
+            from swasthya_api.rituals import RitualService
+
+            _, day, pillar, value = data.split(":")
+            await RitualService(services, gw).record_report(
+                user_id, date.fromisoformat(day), pillar, value == "1"
             )
         return
 
@@ -144,6 +135,22 @@ async def _handle(update: dict[str, Any], services: Services, gw: TelegramGatewa
         return
 
     message_id = msg["message_id"]
+    program = ProgramService(services)
+
+    if text.startswith("/onboard"):
+        await _send_reply(gw, chat_id, await program.start(user_id, CHANNEL))
+        return
+    if text.startswith("/cancel"):
+        await program.cancel(user_id)
+        await gw.send_message(chat_id, "Stopped. /onboard starts again whenever you like.")
+        return
+    if text and not text.startswith("/") and await program.is_onboarding(user_id):
+        await _send_reply(gw, chat_id, await program.answer(user_id, text))
+        return
+    if text.startswith("/time"):
+        await gw.send_message(chat_id, await _set_time(services, gw, user_id, text))
+        return
+
     if photos := msg.get("photo"):
         largest = max(photos, key=lambda p: p.get("file_size") or p["width"] * p["height"])
         await gw.typing(chat_id)
@@ -210,7 +217,36 @@ async def _handle(update: dict[str, Any], services: Services, gw: TelegramGatewa
         )
         return
 
+    if text and not text.startswith("/"):
+        from swasthya_api.rituals import RitualService
+
+        if await RitualService(services, gw).record_causal_answer(user_id, text):
+            await gw.send_message(
+                chat_id, "Thank you — noted. That's what the weekly letter learns from."
+            )
+            return
+
     await gw.send_message(chat_id, HELP)
+
+
+async def _send_reply(gw: TelegramGateway, chat_id: int, reply: Reply) -> None:
+    buttons = [Button(o.replace("_", " "), f"ob:{o}") for o in reply.options]
+    await gw.send_message(chat_id, reply.text, buttons=buttons)
+
+
+async def _set_time(services: Services, gw: TelegramGateway, user_id, text: str) -> str:
+    from swasthya_api.rituals import RitualService
+
+    parts = text.split()
+    which = {"morning": "morning_brief", "evening": "evening_checkin"}
+    if len(parts) != 3 or parts[1].lower() not in which:
+        return "Use: /time morning 06:45  or  /time evening 21:00"
+    try:
+        at: time = parse_time(parts[2])
+    except ValueError:
+        return "That time didn't parse — try 06:45 or 9.30pm."
+    await RitualService(services, gw).set_time(user_id, which[parts[1].lower()], at)
+    return f"Done — your {parts[1].lower()} ritual moves to {at:%H:%M}."
 
 
 def _uuid(value: str):
@@ -281,8 +317,8 @@ class BotGateway:
         file = await self.bot.get_file(file_id)
         return bytes(await file.download_as_bytearray())
 
-    async def answer_callback(self, callback_id):
-        await self.bot.answer_callback_query(callback_id)
+    async def answer_callback(self, callback_id, text=None):
+        await self.bot.answer_callback_query(callback_id, text=text)
 
     async def typing(self, chat_id):
         await self.bot.send_chat_action(chat_id, "typing")

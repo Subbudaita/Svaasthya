@@ -4,7 +4,8 @@ An agentic personal health coach that explains *why* progress is or isn't
 happening. Condition-aware, India-first, referral-first. The full requirements
 and architecture are in [`docs/PLAN.md`](docs/PLAN.md). Read it first.
 
-**Status: Phase 1 (Ingestion & multi-method logging).** Photograph a plate on
+**Status: Phase 2 (Contract, rituals, behaviour engine)** on top of
+**Phase 1 (Ingestion & multi-method logging).** Photograph a plate on
 Telegram and get back what's on it plus one sentence on its balance. Every
 number comes from the Indian Nutrient Databank, never from the model. Built
 on Phase 0: schema with row-level security, an authenticated API, and a
@@ -107,7 +108,7 @@ don't need Supabase or a public URL.
 make indb                              # convert INDB → data/nutrition/indb.json
 make dev-user EMAIL=you@example.com    # prints a link code
 make api                               # terminal 1 (optional for Telegram, needed for HTTP)
-make telegram                          # terminal 2: the bot, by long polling
+make telegram                          # terminal 2: the worker — bot + ritual scheduler
 ```
 
 In Telegram, send your bot `/start <code>`. Then:
@@ -146,6 +147,38 @@ numbers**. They are stored, but appear only from Rebuild.
   nutrition table yet" instead of being guessed.
 - Voice-note logging waits for speech-to-text (Phase 6).
 - Photos are stored on local disk until Supabase Storage is connected.
+
+## Your program (Phase 2)
+
+Send `/onboard` to the bot. It asks about 30 short questions about your
+**day**: when you wake and sleep, yesterday's first and last bite, family
+dinner, energy crashes, fasting days. It never asks what target you want.
+The rule engine then derives everything else:
+
+- the eating window, anchored three hours before sleep, starting from your
+  observed baseline, around family dinner, and never narrower than 12 h in
+  Reset;
+- the contraindication gates (pregnancy, T1D, insulin/sulfonylureas,
+  eating-disorder history, kidney disease, underweight, …), which remove
+  eating-window advice entirely where it isn't safe;
+- a **Program Contract**: every clause with *why it applies to you*.
+
+Reply `OK` to accept, or `/onboard` to answer again. From the next day:
+
+| When | What |
+|---|---|
+| 07:00 | **Brief**: kitchen hours, breakfast already decided (your own protein breakfast if you have one), yesterday's context, any grace day revealed |
+| 21:30 | **Check-in**: tap ✓/✗ for five pillars, then answer exactly one question about *why*; the answer is stored as a fact |
+
+- **Days 1–3** only observe; nothing is scored.
+- Six independent consistency tracks. Each gets two grace days a month,
+  applied silently and revealed the next morning.
+- Your own non-food rewards are paid retroactively at 14/30/60-day runs and
+  never announced in advance.
+- `/time morning 06:45` and `/time evening 21:00` move the rituals.
+
+Design notes: [ADR 0003](docs/adr/0003-ritual-scheduling.md) (exactly-once
+rituals; a missed one is a logged incident).
 
 ## Connecting Supabase (needs an account)
 

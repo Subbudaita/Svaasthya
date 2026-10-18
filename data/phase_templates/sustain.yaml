@@ -1,0 +1,37 @@
+# Sustain (weeks 13-24): Swasthya goes quiet; travel, festivals, eating out.
+phase: sustain
+version: "2026-10-18"
+weeks: [13, 24]
+numbers_visible: true
+observation_days: 0
+clauses:
+  - id: nutrition.protein_each_meal
+    pillar: nutrition
+    text: Protein at every main meal, including when eating out.
+    why: The habit that holds when everything else changes.
+  - id: eating_window.target
+    pillar: eating_window
+    requires_flag_absent: no_time_restricted_eating
+    text: Keep your window ({window_open}–{window_close}) on ordinary days; festivals and travel are exempt.
+    why: Consistency on ordinary days is what carries you through the exceptions.
+  - id: eating_window.regular_meals
+    pillar: eating_window
+    requires_flag_present: no_time_restricted_eating
+    text: Regular meal times on ordinary days.
+    why: "{no_trf_reason}"
+  - id: movement.post_meal_walk
+    pillar: movement
+    text: The after-meal walk, wherever you are.
+    why: It travels with you.
+  - id: sleep.consistent_bedtime
+    pillar: sleep
+    text: Lights out around {sleep_time}.
+    why: Sleep stays the first lever.
+  - id: hydration.water_anchor
+    pillar: hydration
+    text: Water on waking and with meals.
+    why: Already automatic — keep it that way.
+  - id: mind.weekly_letter
+    pillar: mind
+    text: Read the weekly letter; the daily check-in becomes optional.
+    why: You're running this yourself now.

@@ -1,0 +1,7 @@
+# A reward that mentions any of these is rejected: rewards are never food (§3).
+version: "2026-10-18"
+terms: [food, eat, eating, meal, dinner, lunch, breakfast, snack, dessert, sweet, sweets,
+        mithai, chocolate, cake, pastry, ice cream, icecream, pizza, burger, biryani, fries,
+        chips, samosa, jalebi, gulab jamun, ladoo, laddu, halwa, kheer, cheat meal, cheat day,
+        buffet, restaurant, takeaway, swiggy, zomato, drink, drinks, beer, wine, alcohol,
+        cocktail, soda, cola, juice, coffee, chai]

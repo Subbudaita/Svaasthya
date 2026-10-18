@@ -1,0 +1,47 @@
+# Reset (weeks 1-4): rebuild rhythm, no numbers shown (docs/PLAN.md F7, §7).
+# Clause texts may use {placeholders} filled by the rule engine from the
+# user's derived parameters. Each clause states why it applies.
+phase: reset
+version: "2026-10-18"
+weeks: [1, 4]
+numbers_visible: false
+observation_days: 3
+clauses:
+  - id: nutrition.protein_each_meal
+    pillar: nutrition
+    text: Include a protein source at every main meal (dal, curd, paneer, sprouts, egg, fish, chicken).
+    why: Protein at each meal steadies hunger and protects muscle while habits change.
+  - id: nutrition.vegetable_each_meal
+    pillar: nutrition
+    text: Half the plate vegetables at lunch and dinner where you can.
+    why: Fibre and volume, without counting anything.
+  - id: eating_window.target
+    pillar: eating_window
+    requires_flag_absent: no_time_restricted_eating
+    text: Eat between {window_open} and {window_close}.
+    why: "{window_why}"
+  - id: eating_window.regular_meals
+    pillar: eating_window
+    requires_flag_present: no_time_restricted_eating
+    text: Three regular meals at roughly the same times each day; no fasting window.
+    why: "{no_trf_reason}"
+  - id: movement.post_meal_walk
+    pillar: movement
+    text: A 10-minute walk after your biggest meal.
+    why: A short walk after eating blunts the glucose rise; it's the highest-yield ten minutes of the day.
+  - id: movement.keep_baseline
+    pillar: movement
+    text: Keep your usual daily walking ({walking_baseline}); we don't add more yet.
+    why: Reset builds consistency first. More arrives in Rebuild.
+  - id: sleep.consistent_bedtime
+    pillar: sleep
+    text: Lights out around {sleep_time}, give or take 30 minutes.
+    why: Regular sleep timing is the lever that most often decides tomorrow's cravings and energy.
+  - id: hydration.water_anchor
+    pillar: hydration
+    text: A glass of water on waking and one with each meal.
+    why: Anchoring water to things you already do makes it automatic.
+  - id: mind.evening_checkin
+    pillar: mind
+    text: Answer the 21:30 check-in honestly, including the bad days.
+    why: The point is to learn what's actually happening, not to score well.

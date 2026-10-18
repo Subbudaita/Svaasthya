@@ -1,0 +1,8 @@
+# Default ritual times (local). Users can move them; these are only defaults.
+version: "2026-10-18"
+morning_brief: "07:00"
+evening_checkin: "21:30"
+# A ritual not delivered within this many minutes of its time is a logged incident.
+catch_up_minutes: 120
+# The causal answer to the check-in is accepted until this many minutes after it.
+answer_window_minutes: 180

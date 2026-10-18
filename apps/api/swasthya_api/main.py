@@ -12,7 +12,7 @@ from swasthya_ingestion.plate_agent import PerceptionError, PerceptionRefused
 from swasthya_api import __version__
 from swasthya_api.budget import TokenCapExceeded
 from swasthya_api.meals import MealNotFound, NotAMeal
-from swasthya_api.routes import channels, health, me, meals
+from swasthya_api.routes import channels, health, me, meals, program
 from swasthya_api.services import FeatureUnavailable, build_services
 from swasthya_api.settings import Settings, get_settings
 
@@ -65,4 +65,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(me.router)
     app.include_router(meals.router)
     app.include_router(channels.router)
+    app.include_router(program.router)
     return app

@@ -1,0 +1,53 @@
+# Rebuild (weeks 5-12): numbers arrive; window narrows by gated steps.
+phase: rebuild
+version: "2026-10-18"
+weeks: [5, 12]
+numbers_visible: true
+observation_days: 0
+params:
+  protein_g_per_kg: 1.2   # lower end of 1.2-1.6 g/kg (docs/PLAN.md §3, GLP-1-era evidence)
+clauses:
+  - id: nutrition.protein_target
+    pillar: nutrition
+    requires_flag_absent: protein_standard_only
+    text: Aim for {protein_target_g} g protein a day, spread across meals.
+    why: 1.2 g per kg of body weight preserves muscle while body fat falls.
+  - id: nutrition.protein_standard
+    pillar: nutrition
+    requires_flag_present: protein_standard_only
+    text: Protein at each meal, at usual amounts.
+    why: Higher protein needs your doctor's go-ahead first.
+  - id: nutrition.vegetable_each_meal
+    pillar: nutrition
+    text: Half the plate vegetables at lunch and dinner.
+    why: Fibre and volume keep you full on fewer calories.
+  - id: eating_window.target
+    pillar: eating_window
+    requires_flag_absent: no_time_restricted_eating
+    text: Eat between {window_open} and {window_close}.
+    why: "{window_why}"
+  - id: eating_window.regular_meals
+    pillar: eating_window
+    requires_flag_present: no_time_restricted_eating
+    text: Three regular meals at roughly the same times each day; no fasting window.
+    why: "{no_trf_reason}"
+  - id: movement.post_meal_walk
+    pillar: movement
+    text: A 10-minute walk after your biggest meal.
+    why: The highest-yield ten minutes of the day for glucose.
+  - id: movement.strength
+    pillar: movement
+    text: Two short strength sessions a week (bodyweight is fine).
+    why: Strength work is what keeps muscle while weight comes off.
+  - id: sleep.consistent_bedtime
+    pillar: sleep
+    text: Lights out around {sleep_time}, give or take 30 minutes.
+    why: Sleep timing drives next-day energy and cravings.
+  - id: hydration.water_anchor
+    pillar: hydration
+    text: A glass of water on waking and one with each meal.
+    why: Anchored habits outlast reminders.
+  - id: mind.evening_checkin
+    pillar: mind
+    text: Answer the 21:30 check-in honestly, including the bad days.
+    why: Honest data is what the weekly letter reasons from.

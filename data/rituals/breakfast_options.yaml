@@ -1,0 +1,13 @@
+# Protein-forward Indian breakfasts for the 07:00 brief when the user has no
+# breakfast of their own with protein yet. Codes are INDB. `diets` lists the
+# dietary patterns each suits as commonly prepared — review for Jain/vegan.
+version: "2026-10-18"
+options:
+  - {code: BFP046, label: moong dal cheela with curd, diets: [vegetarian, eggetarian, non_vegetarian]}
+  - {code: ASC469, label: sprouted moong poha, diets: [vegetarian, eggetarian, non_vegetarian, vegan]}
+  - {code: BFP578, label: sprouts upma, diets: [vegetarian, eggetarian, non_vegetarian, vegan]}
+  - {code: OSR103, label: pesarattu with chutney, diets: [vegetarian, eggetarian, non_vegetarian, vegan]}
+  - {code: BFP047, label: paneer stuffed cheela, diets: [vegetarian, eggetarian, non_vegetarian]}
+  - {code: ASC144, label: idli with sambar, diets: [vegetarian, eggetarian, non_vegetarian, vegan]}
+  - {code: ASC056, label: two boiled eggs with a roti, diets: [eggetarian, non_vegetarian]}
+  - {code: BFP054, label: omelette with a roti, diets: [eggetarian, non_vegetarian]}

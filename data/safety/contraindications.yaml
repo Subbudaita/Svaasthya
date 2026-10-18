@@ -1,0 +1,47 @@
+# Contraindication screen (docs/PLAN.md §4 "Hard gate", §5 Safety architecture).
+#
+# Each screen answer that is true adds flags. Flags are permanent for the
+# contract they produce; the rule engine never overrides them and the output
+# guard (Phase 5) rejects any recommendation that contradicts one.
+#
+#   no_time_restricted_eating  no eating-window target at all
+#   no_calorie_deficit         no deficit-oriented recommendation
+#   protein_standard_only      no elevated-protein target (kidney safety)
+#   refer_first                coaching starts only after the user confirms
+#                              a doctor knows they are doing this
+version: "2026-10-18"
+screen:
+  pregnant_or_breastfeeding:
+    flags: [no_time_restricted_eating, no_calorie_deficit]
+    reason: Pregnancy and breastfeeding need more energy, not less.
+  type_1_diabetes:
+    flags: [no_time_restricted_eating, refer_first]
+    reason: Meal timing changes with insulin carry a real hypoglycaemia risk.
+  insulin_or_sulfonylurea:
+    flags: [no_time_restricted_eating, refer_first]
+    reason: Insulin and sulfonylureas (e.g. glimepiride, gliclazide) can cause lows if meals move.
+  eating_disorder_history:
+    flags: [no_time_restricted_eating, no_calorie_deficit]
+    reason: Restriction-based approaches can trigger relapse.
+  kidney_disease:
+    flags: [protein_standard_only, refer_first]
+    reason: Higher protein intake is not safe to recommend without a doctor.
+  warfarin:
+    flags: [refer_first]
+    reason: Changes in leafy-vegetable intake affect warfarin dosing.
+  thyroid_medication:
+    flags: []
+    reason: Noted so timing advice keeps thyroid tablets on an empty stomach.
+  glp1_medication:
+    flags: [refer_first]
+    reason: On a GLP-1, protein and muscle preservation come first; your doctor should know.
+# Derived from measurements rather than a question.
+underweight:
+  flags: [no_time_restricted_eating, no_calorie_deficit]
+  reason: Your BMI is in the underweight range.
+# What each flag forbids, written into the contract's prohibitions.
+prohibitions:
+  no_time_restricted_eating: No eating-window or fasting recommendation of any kind.
+  no_calorie_deficit: No calorie-deficit or weight-loss-rate recommendation.
+  protein_standard_only: No protein target above usual intake.
+  refer_first: Confirm a doctor knows about this program before changing anything.

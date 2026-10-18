@@ -40,6 +40,12 @@ SAMPLE_ROWS: dict[str, dict[str, object]] = {
     "audit_log": {"actor": "test", "action": "test"},
     "token_usage": {"usage_date": "2026-10-01", "tokens_used": 10},
     "channel_identities": {"channel": "telegram", "external_id": "__unique__"},
+    "onboarding_sessions": {"script_version": "t", "channel": "telegram"},
+    "consents": {"document": "coaching_disclaimer", "version": "t", "channel": "telegram"},
+    "rewards": {"text": "a book"},
+    "accountability_contacts": {"name_and_relation": "Anu, sister", "agreed": True},
+    "pillar_days": {"pillar": "sleep", "day": "2026-10-01", "result": "met"},
+    "ritual_runs": {"ritual": "morning_brief", "local_date": "2026-10-01", "status": "sent"},
     "channel_link_codes": {
         "channel": "telegram",
         "code_hash": "__unique__",
@@ -62,7 +68,7 @@ def _count(conn: psycopg.Connection, table: str) -> int:
 
 def test_sample_rows_cover_every_simple_tenant_table():
     # Child tables (FK to another tenant row) are covered by dedicated tests below.
-    children = {"lab_results", "messages"}
+    children = {"lab_results", "messages", "grace_days"}
     assert set(SAMPLE_ROWS) | children == set(TENANT_TABLES)
 
 
@@ -268,3 +274,82 @@ def test_expired_link_code_is_refused(make_user, as_user):
             conn.execute("SELECT app.redeem_link_code('OLDCODE9', 'telegram', '1')").fetchone()[0]
             is None
         )
+
+
+def _track(conn, user_id, pillar="movement"):
+    return conn.execute(
+        "INSERT INTO consistency_tracks (user_id, pillar) VALUES (%s, %s) RETURNING id",
+        (user_id, pillar),
+    ).fetchone()[0]
+
+
+def test_grace_days_capped_at_two_per_track_per_month(make_user, as_user):
+    import yaml
+    from swasthya_shared.data import data_dir
+
+    rules = yaml.safe_load((data_dir() / "behaviour/rules.yaml").read_text())
+    assert rules["grace_days_per_track_per_month"] == 2  # the trigger's constant
+    alice = make_user()
+    sql = "INSERT INTO grace_days (user_id, track_id, pillar, applied_on) VALUES (%s, %s, 'movement', %s)"
+    with as_user(alice) as conn:
+        track = _track(conn, alice)
+        other = _track(conn, alice, "sleep")
+        conn.execute(sql, (alice, track, "2026-10-03"))
+        conn.execute(sql, (alice, track, "2026-10-17"))
+        conn.execute(sql, (alice, other, "2026-10-18"))  # independent track
+        conn.execute(sql, (alice, track, "2026-11-01"))  # new month
+    with pytest.raises(errors.CheckViolation):
+        with as_user(alice) as conn:
+            conn.execute(sql, (alice, track, "2026-10-29"))
+
+
+def test_grace_day_cannot_point_at_another_users_track(make_user, as_user):
+    alice, bob = make_user(), make_user()
+    with as_user(alice) as conn:
+        track = _track(conn, alice)
+    with pytest.raises(errors.ForeignKeyViolation):
+        with as_user(bob) as conn:
+            conn.execute(
+                "INSERT INTO grace_days (user_id, track_id, pillar, applied_on) "
+                "VALUES (%s, %s, 'movement', '2026-10-01')",
+                (bob, track),
+            )
+
+
+def test_one_open_onboarding_session(make_user, as_user):
+    alice = make_user()
+    sql = (
+        "INSERT INTO onboarding_sessions (user_id, script_version, channel) VALUES (%s, 't', 'pwa')"
+    )
+    with as_user(alice) as conn:
+        conn.execute(sql, (alice,))
+    with pytest.raises(errors.UniqueViolation):
+        with as_user(alice) as conn:
+            conn.execute(sql, (alice,))
+
+
+def test_ritual_candidates_reveal_only_scheduling_fields(make_user, as_user, admin_conn):
+    alice = make_user()
+    admin_conn.execute("UPDATE users SET program_started_on = '2026-10-01' WHERE id = %s", (alice,))
+    admin_conn.execute(
+        "INSERT INTO program_contracts (user_id, version, phase, body, generator_version) "
+        "VALUES (%s, 1, 'reset', '{}', 't')",
+        (alice,),
+    )
+    admin_conn.execute(
+        "INSERT INTO channel_identities (user_id, channel, external_id) VALUES (%s, 'telegram', '55')",
+        (alice,),
+    )
+    with as_user(None) as conn:
+        rows = conn.execute("SELECT * FROM app.ritual_candidates()").fetchall()
+        cols = [d.name for d in conn.execute("SELECT * FROM app.ritual_candidates()").description]
+        assert _count(conn, "users") == 0  # the tables stay invisible
+    assert [r[0] for r in rows] == [alice]
+    assert cols == [
+        "user_id",
+        "timezone",
+        "program_started_on",
+        "morning_brief_at",
+        "evening_checkin_at",
+        "telegram_id",
+    ]

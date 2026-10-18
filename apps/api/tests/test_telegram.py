@@ -30,7 +30,7 @@ class RecordingGateway:
     async def download_file(self, file_id):
         return self.photo
 
-    async def answer_callback(self, callback_id):
+    async def answer_callback(self, callback_id, text=None):
         pass
 
     async def typing(self, chat_id):

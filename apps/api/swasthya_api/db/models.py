@@ -20,7 +20,7 @@ Memory model → tables
 """
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any
 
@@ -39,6 +39,7 @@ from sqlalchemy import (
     Numeric,
     SmallInteger,
     Text,
+    Time,
     UniqueConstraint,
     func,
     text,
@@ -102,7 +103,12 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(Text)
     # Overrides the global DAILY_TOKEN_CAP for this user when set.
     daily_token_cap: Mapped[int | None] = mapped_column(Integer)
+    # Ritual times chosen by the person; NULL means the default in data/rituals/.
+    morning_brief_at: Mapped[time | None] = mapped_column(Time)
+    evening_checkin_at: Mapped[time | None] = mapped_column(Time)
     onboarded_at: Mapped[datetime | None]
+    # Day 1 of the program (local date the first contract was accepted).
+    program_started_on: Mapped[date | None]
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _created()
 
@@ -124,6 +130,8 @@ class HealthProfile(Base):
     )
     sex: Mapped[str | None] = mapped_column(Text)
     date_of_birth: Mapped[date | None]
+    birth_year: Mapped[int | None] = mapped_column(SmallInteger)
+    diet_pattern: Mapped[str | None] = mapped_column(Text)
     height_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     conditions: Mapped[list[Any]] = _jsonb_list()
     medications: Mapped[list[Any]] = _jsonb_list()
@@ -133,6 +141,10 @@ class HealthProfile(Base):
     # Religious / customary fasting days. Respected, never scored as violations.
     fasting_days: Mapped[list[Any]] = _jsonb_list()
     food_identity: Mapped[dict[str, Any]] = _jsonb_obj()
+    # Answers about the person's day the contract derives from (wake, sleep,
+    # first/last bite, family dinner, work pattern, ...). Never targets.
+    lifestyle: Mapped[dict[str, Any]] = _jsonb_obj()
+    goal: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _created()
 
@@ -183,6 +195,8 @@ class DailyLog(Base):
     water_ml: Mapped[int | None] = mapped_column(Integer)
     energy: Mapped[int | None] = mapped_column(SmallInteger)
     gut_symptoms: Mapped[list[Any]] = _jsonb_list()
+    # The person's own check-in answers, pillar → kept it today?
+    pillar_reports: Mapped[dict[str, Any]] = _jsonb_obj()
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _created()
@@ -395,11 +409,96 @@ class ConsistencyTrack(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "pillar", name="consistency_tracks_user_pillar_key"),
+        UniqueConstraint("id", "user_id", name="consistency_tracks_id_user_key"),
         CheckConstraint(
             "current_run_days >= 0 AND longest_run_days >= current_run_days",
             name="run_lengths_valid",
         ),
     )
+
+
+PILLAR_DAY_RESULTS = ("met", "missed", "grace", "exempt", "observation", "no_data")
+
+
+class PillarDay(Base):
+    """One pillar's result on one local day. The causal engine reads these."""
+
+    __tablename__ = "pillar_days"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    pillar: Mapped[str] = mapped_column(Text)
+    day: Mapped[date]
+    result: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "pillar", "day", name="pillar_days_user_pillar_day_key"),
+        CheckConstraint(_in("result", PILLAR_DAY_RESULTS), name="result_valid"),
+    )
+
+
+class GraceDay(Base):
+    """A miss silently covered. At most two per track per month (trigger)."""
+
+    __tablename__ = "grace_days"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    track_id: Mapped[uuid.UUID]
+    pillar: Mapped[str] = mapped_column(Text)
+    applied_on: Mapped[date]
+    # Set when the next morning brief tells the person — retroactive, never before.
+    revealed_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (
+        UniqueConstraint("track_id", "applied_on", name="grace_days_track_day_key"),
+        ForeignKeyConstraint(
+            ["track_id", "user_id"],
+            ["consistency_tracks.id", "consistency_tracks.user_id"],
+            ondelete="CASCADE",
+            name="grace_days_track_fkey",
+        ),
+    )
+
+
+REWARD_KINDS = ("process", "outcome")
+REWARD_STATUSES = ("available", "paid")
+
+
+class Reward(Base):
+    """The reward ledger: the person's own non-food rewards, paid retroactively."""
+
+    __tablename__ = "rewards"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    text: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Text, server_default="process")
+    status: Mapped[str] = mapped_column(Text, server_default="available")
+    paid_at: Mapped[datetime | None]
+    # What earned it: pillar, run length, day.
+    paid_for: Mapped[dict[str, Any]] = _jsonb_obj()
+    created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (
+        CheckConstraint(_in("kind", REWARD_KINDS), name="kind_valid"),
+        CheckConstraint(_in("status", REWARD_STATUSES), name="status_valid"),
+    )
+
+
+class AccountabilityContact(Base):
+    """One real person who agreed to read the weekly letter (F16)."""
+
+    __tablename__ = "accountability_contacts"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    name_and_relation: Mapped[str] = mapped_column(Text)
+    agreed: Mapped[bool]
+    created_at: Mapped[datetime] = _created()
+    revoked_at: Mapped[datetime | None]
 
 
 class IfThenPlan(Base):
@@ -433,6 +532,74 @@ class IfThenPlan(Base):
             "execution_count >= 0 AND success_count >= 0 AND success_count <= execution_count",
             name="counts_valid",
         ),
+    )
+
+
+# --- Onboarding, consent, rituals ----------------------------------------------
+
+
+class OnboardingSession(Base):
+    __tablename__ = "onboarding_sessions"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    script_version: Mapped[str] = mapped_column(Text)
+    channel: Mapped[str] = mapped_column(Text)
+    answers: Mapped[dict[str, Any]] = _jsonb_obj()
+    # The contract proposed at the end, for the person to accept or redo.
+    proposed_contract: Mapped[dict[str, Any] | None]
+    started_at: Mapped[datetime] = _created()
+    completed_at: Mapped[datetime | None]
+
+    __table_args__ = (
+        Index(
+            "onboarding_sessions_one_open_idx",
+            "user_id",
+            unique=True,
+            postgresql_where=text("completed_at IS NULL"),
+        ),
+        CheckConstraint(_in("channel", CHANNELS), name="channel_valid"),
+    )
+
+
+class Consent(Base):
+    """Consent and disclaimers, with the exact document version (§5)."""
+
+    __tablename__ = "consents"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    document: Mapped[str] = mapped_column(Text)
+    version: Mapped[str] = mapped_column(Text)
+    channel: Mapped[str] = mapped_column(Text)
+    accepted_at: Mapped[datetime] = _created()
+
+
+RITUALS = ("morning_brief", "evening_checkin")
+RITUAL_STATUSES = ("sent", "missed", "failed")
+
+
+class RitualRun(Base):
+    """One ritual on one local day. The unique key makes delivery idempotent."""
+
+    __tablename__ = "ritual_runs"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    ritual: Mapped[str] = mapped_column(Text)
+    local_date: Mapped[date]
+    status: Mapped[str] = mapped_column(Text)
+    sent_at: Mapped[datetime | None]
+    # Contract version and clause ids it cited; the causal question asked.
+    payload: Mapped[dict[str, Any]] = _jsonb_obj()
+    answer: Mapped[str | None] = mapped_column(Text)
+    answered_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "ritual", "local_date", name="ritual_runs_user_day_key"),
+        CheckConstraint(_in("ritual", RITUALS), name="ritual_valid"),
+        CheckConstraint(_in("status", RITUAL_STATUSES), name="status_valid"),
     )
 
 
