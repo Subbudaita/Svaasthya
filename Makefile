@@ -1,8 +1,11 @@
 # Convenience targets. Each is a one-liner you can also run by hand (see README).
-.PHONY: install db migrate api web test lint
+.PHONY: install db migrate indb dev-user api telegram web test lint eval-vision
+
+INDB_REPO := https://github.com/lindsayjaacks/indian-nutrient-databank-indb-
+INDB_DIR := var/indb
 
 install:
-	uv sync
+	uv sync --group data
 	cd apps/web && npm ci
 
 db:
@@ -11,8 +14,22 @@ db:
 migrate:
 	cd apps/api && uv run --env-file ../../.env alembic upgrade head
 
+# Convert the Indian Nutrient Databank into data/nutrition/indb.json (not committed).
+indb:
+	@test -d $(INDB_DIR) || git clone --depth 1 $(INDB_REPO) $(INDB_DIR)
+	uv run --group data python scripts/import_indb.py $(INDB_DIR)/INDB.xlsx
+
+# Local user + Telegram link code, no Supabase needed:  make dev-user EMAIL=you@example.com
+dev-user:
+	@test -n "$(EMAIL)" || (echo "usage: make dev-user EMAIL=you@example.com" && exit 1)
+	uv run --env-file .env python -m swasthya_api.devtools create-user --email $(EMAIL)
+
 api:
 	uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload
+
+# Telegram bot by long polling (local; no public URL needed).
+telegram:
+	uv run --env-file .env python -m swasthya_api.telegram_poll
 
 web:
 	cd apps/web && npm run dev
@@ -23,3 +40,7 @@ test:
 lint:
 	uv run ruff check . && uv run ruff format --check .
 	cd apps/web && npm run typecheck
+
+# Spends real tokens. Needs photos + labels in evals/vision/golden/.
+eval-vision:
+	uv run --env-file .env python evals/vision/run.py

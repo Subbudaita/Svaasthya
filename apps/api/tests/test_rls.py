@@ -39,11 +39,18 @@ SAMPLE_ROWS: dict[str, dict[str, object]] = {
     "escalations": {"trigger_source": "test", "category": "test"},
     "audit_log": {"actor": "test", "action": "test"},
     "token_usage": {"usage_date": "2026-10-01", "tokens_used": 10},
+    "channel_identities": {"channel": "telegram", "external_id": "__unique__"},
+    "channel_link_codes": {
+        "channel": "telegram",
+        "code_hash": "__unique__",
+        "expires_at": "2099-01-01T00:00:00Z",
+    },
 }
 
 
 def _insert(conn: psycopg.Connection, table: str, user_id: uuid.UUID) -> None:
     values = {"user_id": user_id, **SAMPLE_ROWS[table]}
+    values = {k: (uuid.uuid4().hex if v == "__unique__" else v) for k, v in values.items()}
     cols = ", ".join(values)
     params = ", ".join(["%s"] * len(values))
     conn.execute(f"INSERT INTO {table} ({cols}) VALUES ({params})", list(values.values()))
@@ -210,3 +217,54 @@ def test_cross_user_read_over_http(client, make_token):
     assert a.status_code == b.status_code == 200
     assert a.json()["id"] == str(alice)
     assert b.json()["id"] == str(bob)
+
+
+def test_channel_lookup_only_through_definer_functions(make_user, as_user):
+    """The bot resolves Telegram ids with no user context, via one narrow function."""
+    from swasthya_api.channels import hash_code
+
+    alice, bob = make_user(), make_user()
+    with as_user(alice) as conn:
+        conn.execute(
+            "INSERT INTO channel_link_codes (user_id, channel, code_hash, expires_at) "
+            "VALUES (%s, 'telegram', %s, now() + interval '10 minutes')",
+            (alice, hash_code("abcd2345")),
+        )
+    with as_user(None) as conn:
+        # No identity: the tables themselves are invisible...
+        assert _count(conn, "channel_identities") == 0
+        # ...but the redeem function links exactly the code's owner, once.
+        assert (
+            conn.execute("SELECT app.redeem_link_code('ABCD2345', 'telegram', '777')").fetchone()[0]
+            == alice
+        )
+        assert (
+            conn.execute("SELECT app.redeem_link_code('ABCD2345', 'telegram', '888')").fetchone()[0]
+            is None
+        )  # single use
+        assert (
+            conn.execute("SELECT app.resolve_channel_user('telegram', '777')").fetchone()[0]
+            == alice
+        )
+        assert (
+            conn.execute("SELECT app.resolve_channel_user('telegram', '999')").fetchone()[0] is None
+        )
+    with as_user(bob) as conn:
+        assert _count(conn, "channel_identities") == 0  # Bob can't see Alice's link
+
+
+def test_expired_link_code_is_refused(make_user, as_user):
+    from swasthya_api.channels import hash_code
+
+    alice = make_user()
+    with as_user(alice) as conn:
+        conn.execute(
+            "INSERT INTO channel_link_codes (user_id, channel, code_hash, expires_at) "
+            "VALUES (%s, 'telegram', %s, now() - interval '1 minute')",
+            (alice, hash_code("OLDCODE9")),
+        )
+    with as_user(None) as conn:
+        assert (
+            conn.execute("SELECT app.redeem_link_code('OLDCODE9', 'telegram', '1')").fetchone()[0]
+            is None
+        )

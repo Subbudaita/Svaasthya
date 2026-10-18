@@ -14,10 +14,16 @@ dependencies = [
     "psycopg[binary]>=3.3,<4",
     "pgvector>=0.5,<0.6",
     "pyjwt[crypto]>=2.15,<3",
+    "swasthya-engines",
+    "swasthya-ingestion",
+    "python-multipart>=0.0.32,<0.1",
+    "python-telegram-bot>=22.8,<23",
 ]
 
 [tool.uv.sources]
 swasthya-shared = { workspace = true }
+swasthya-engines = { workspace = true }
+swasthya-ingestion = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.27"]

@@ -22,3 +22,14 @@ next-env.d.ts
 .DS_Store
 .idea/
 .vscode/
+
+# Converted third-party data (no redistribution licence) — see data/nutrition/README.md
+data/nutrition/indb.json
+
+# Local photo storage
+var/
+
+# Vision golden set: your own meal photos and labels stay local
+evals/vision/golden/*
+!evals/vision/golden/.gitkeep
+evals/vision/reports/

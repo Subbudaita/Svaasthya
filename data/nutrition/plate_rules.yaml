@@ -1,0 +1,35 @@
+# Balanced-plate read: one actionable sentence, no numbers (docs/PLAN.md F3, §7).
+#
+# Heuristic, informed by the ICMR-NIN Dietary Guidelines for Indians (2024)
+# "My Plate for the Day" (vegetables/fruit about half, cereals about a quarter,
+# pulses/dairy the rest). Thresholds are product heuristics, not clinical cutoffs.
+#
+# Rules are evaluated in order; the first that matches is the read.
+#   missing_any_of:  none of these roles is on the plate
+#   share_at_least:  this role is at least `share` of the plate's known grams
+#   present_any_of:  at least one of these roles is on the plate
+version: "2026-10-18"
+roles: [grain, protein, vegetable, dairy, fruit, fried, sweet, beverage, other]
+rules:
+  - id: no_protein
+    missing_any_of: [protein, dairy]
+    sentence: >-
+      There's no clear protein on this plate; some dal, curd, paneer or sprouts
+      alongside would keep you fuller for longer.
+  - id: no_vegetable
+    missing_any_of: [vegetable, fruit]
+    sentence: >-
+      No visible vegetable here; a sabzi or a bowl of salad next to it would
+      round this plate out.
+  - id: grain_heavy
+    share_at_least: {role: grain, share: 0.6}
+    sentence: >-
+      Most of this plate is grain; trading a little of it for more dal or sabzi
+      would balance it.
+  - id: fried_or_sweet
+    present_any_of: [fried, sweet]
+    sentence: >-
+      Worth noticing how your energy feels a couple of hours after this one.
+  - id: balanced
+    sentence: >-
+      Grain, protein and vegetables are all here; this is a well-balanced plate.

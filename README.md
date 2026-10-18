@@ -4,9 +4,11 @@ An agentic personal health coach that explains *why* progress is or isn't
 happening. Condition-aware, India-first, referral-first. The full requirements
 and architecture are in [`docs/PLAN.md`](docs/PLAN.md). Read it first.
 
-**Status: Phase 0 (Foundation).** Schema with row-level security, an
-authenticated API skeleton, a per-user daily token cap, and an empty Today
-screen. Phase 0 has no agent, logging, or real UI yet.
+**Status: Phase 1 (Ingestion & multi-method logging).** Photograph a plate on
+Telegram and get back what's on it plus one sentence on its balance. Every
+number comes from the Indian Nutrient Databank, never from the model. Built
+on Phase 0: schema with row-level security, an authenticated API, and a
+per-user daily token cap.
 
 ## Repository layout
 
@@ -94,6 +96,56 @@ API fails closed and never trusts an unverified token.
 ```
 
 `make install | db | migrate | api | web | test | lint` wraps the same commands.
+
+## Try the agent on Telegram (Phase 1)
+
+You need an Anthropic API key and a Telegram bot token from @BotFather. You
+don't need Supabase or a public URL.
+
+```sh
+# in .env: ANTHROPIC_API_KEY=...  TELEGRAM_BOT_TOKEN=...
+make indb                              # convert INDB → data/nutrition/indb.json
+make dev-user EMAIL=you@example.com    # prints a link code
+make api                               # terminal 1 (optional for Telegram, needed for HTTP)
+make telegram                          # terminal 2: the bot, by long polling
+```
+
+In Telegram, send your bot `/start <code>`. Then:
+
+| You send | It does |
+|---|---|
+| a photo (caption optional) | identifies items and portions, replies with what's on the plate and one sentence |
+| `/log 2 roti, dal, bhindi` | the same, from words |
+| `/same` | repeats yesterday's meal in the current slot (no model call) |
+| `/picks` | your usual meals as one-tap buttons (no model call) |
+| a reply to one of its plate messages | corrects that meal, and the correction is stored as a fact |
+
+How a plate is analysed:
+
+1. A hand-written tool-use loop (`packages/ingestion/swasthya_ingestion/plate_agent.py`)
+   runs `claude-sonnet-5`. The model can call one tool, `search_foods`, which
+   does a deterministic lookup in INDB. It returns items with an INDB code, a
+   portion and a role. It never returns a nutrient.
+2. `packages/engines/swasthya_engines/plate.py` turns portions into grams.
+   For countable units like chapati or idli it uses the table's serving
+   weight; otherwise it uses the visual estimate, labelled as an estimate.
+   It then computes nutrients and picks the balanced-plate sentence from
+   `data/nutrition/plate_rules.yaml`.
+3. Every model call reserves its worst case against the daily token cap
+   before it runs.
+
+During Reset (and before any program exists) the reply shows **no calorie
+numbers**. They are stored, but appear only from Rebuild.
+
+**Measure it** with your own photos: `evals/vision/README.md`, then
+`make eval-vision`.
+
+**Known gaps:**
+- Plain staples (plain curd, milk, whole fruit) are in IFCT 2017, which NIN
+  only provides on request. Until it's added they show as "not in my
+  nutrition table yet" instead of being guessed.
+- Voice-note logging waits for speech-to-text (Phase 6).
+- Photos are stored on local disk until Supabase Storage is connected.
 
 ## Connecting Supabase (needs an account)
 

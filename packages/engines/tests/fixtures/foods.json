@@ -1,0 +1,11 @@
+{
+  "dataset": "TEST FIXTURE — synthetic values, not real nutrition data",
+  "foods": [
+    {"code": "T001", "name": "Chapati/Roti", "per_100g": {"energy_kcal": 200, "protein_g": 6, "carb_g": 40, "fat_g": 2}, "serving": {"unit": "chapati", "grams": 40}},
+    {"code": "T002", "name": "Boiled rice (Uble chawal)", "per_100g": {"energy_kcal": 120, "protein_g": 2.5, "carb_g": 26, "fat_g": 0.3}, "serving": {"unit": "plate", "grams": 300}},
+    {"code": "T003", "name": "Washed moong dal (Dhuli moong ki dal)", "per_100g": {"energy_kcal": 50, "protein_g": 3, "carb_g": 7, "fat_g": 1}, "serving": {"unit": "bowl", "grams": 280}},
+    {"code": "T004", "name": "Plain dosa", "per_100g": {"energy_kcal": 380, "protein_g": 7, "carb_g": 50, "fat_g": 16, "fibre_g": null}, "serving": {"unit": "dosa", "grams": 36}},
+    {"code": "T005", "name": "Masala dosa", "per_100g": {"energy_kcal": 165, "protein_g": 3, "carb_g": 22, "fat_g": 7}, "serving": {"unit": "dosa", "grams": 210}},
+    {"code": "T006", "name": "Sambar", "per_100g": {"energy_kcal": 97, "protein_g": 3.4, "carb_g": 12, "fat_g": 4}, "serving": null}
+  ]
+}

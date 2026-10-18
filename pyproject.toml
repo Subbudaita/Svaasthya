@@ -3,7 +3,7 @@ name = "swasthya"
 version = "0.0.0"
 description = "Swasthya — agentic personal health coach (monorepo root)"
 requires-python = ">=3.12,<3.13"
-dependencies = ["swasthya-api", "swasthya-shared", "swasthya-engines"]
+dependencies = ["swasthya-api", "swasthya-shared", "swasthya-engines", "swasthya-ingestion"]
 
 [tool.uv]
 package = false
@@ -12,9 +12,10 @@ package = false
 swasthya-api = { workspace = true }
 swasthya-shared = { workspace = true }
 swasthya-engines = { workspace = true }
+swasthya-ingestion = { workspace = true }
 
 [tool.uv.workspace]
-members = ["apps/api", "packages/shared", "packages/engines"]
+members = ["apps/api", "packages/shared", "packages/engines", "packages/ingestion"]
 
 [dependency-groups]
 dev = [
@@ -24,9 +25,11 @@ dev = [
     "testcontainers[postgres]>=4.15,<5",
     "ruff>=0.13",
 ]
+# Only for scripts/import_indb.py.
+data = ["openpyxl>=3.1,<4"]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "packages/engines/tests", "packages/shared/tests", "tests"]
+testpaths = ["apps/api/tests", "packages/engines/tests", "packages/shared/tests", "packages/ingestion/tests", "evals", "tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --strict-markers --import-mode=importlib"

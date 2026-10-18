@@ -174,3 +174,109 @@ def make_token() -> Callable[..., str]:
 @pytest.fixture
 def alembic_cfg(admin_url: str) -> Config:
     return alembic_config(admin_url)
+
+
+# --- Phase 1: perception doubles -------------------------------------------
+
+FOOD_FIXTURE = Path(__file__).resolve().parents[3] / "packages/engines/tests/fixtures/foods.json"
+
+
+def _message(content, stop_reason, usage=(1200, 300)):
+    from anthropic.types import Message
+
+    return Message.model_validate(
+        {
+            "id": "msg_test",
+            "type": "message",
+            "role": "assistant",
+            "model": "claude-sonnet-5",
+            "content": content,
+            "stop_reason": stop_reason,
+            "stop_sequence": None,
+            "usage": {"input_tokens": usage[0], "output_tokens": usage[1]},
+        }
+    )
+
+
+class ScriptedAnthropic:
+    """Stands in for AsyncAnthropic: replays scripted perceptions, records calls."""
+
+    def __init__(self) -> None:
+        self.perceptions: list[dict[str, Any]] = []
+        self.calls: list[dict[str, Any]] = []
+        self.messages = self
+
+    def will_see(self, *items: dict[str, Any], is_food: bool = True, note: str | None = None):
+        import json
+
+        self.perceptions.append(
+            _message(
+                [
+                    {
+                        "type": "text",
+                        "text": json.dumps(
+                            {"is_food": is_food, "items": list(items), "note": note}
+                        ),
+                    }
+                ],
+                "end_turn",
+            )
+        )
+
+    async def create(self, **kwargs: Any):
+        self.calls.append(kwargs)
+        return self.perceptions.pop(0)
+
+    async def close(self) -> None:
+        pass
+
+
+def plate_item(name, code, qty, unit, grams, role, confidence="high"):
+    return {
+        "name": name,
+        "food_code": code,
+        "quantity": qty,
+        "unit": unit,
+        "estimated_grams": grams,
+        "role": role,
+        "confidence": confidence,
+    }
+
+
+@pytest.fixture
+def model() -> ScriptedAnthropic:
+    return ScriptedAnthropic()
+
+
+@pytest.fixture
+def phase1_app(settings, model, tmp_path):
+    """The real app, with the fixture food table and a scripted model client."""
+    import json
+
+    from swasthya_api.photos import LocalPhotoStore
+    from swasthya_engines.nutrition import FoodTable
+
+    # Each perception call reserves its worst case (~12k tokens) up front.
+    app = create_app(settings.model_copy(update={"daily_token_cap": 200_000}))
+    with TestClient(app) as c:
+        services = app.state.services
+        services.anthropic = model
+        services.food_table = FoodTable.from_dict(json.loads(FOOD_FIXTURE.read_text()))
+        services.photos = LocalPhotoStore(tmp_path)
+        yield c, services
+
+
+@pytest.fixture
+def jpeg_bytes() -> bytes:
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (800, 600), (180, 120, 60)).save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+@pytest.fixture(name="item")
+def _item_fixture():
+    return plate_item

@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, PostgresDsn, field_validator
@@ -38,10 +39,31 @@ class Settings(BaseSettings):
 
     cors_allow_origins: list[str] = Field(default_factory=list, alias="CORS_ALLOW_ORIGINS")
 
+    # --- Perception (Phase 1) ---
+    anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY", repr=False)
+    # Effort for the plate agent; "low" keeps the photo reply inside the 15 s budget.
+    plate_agent_effort: str = Field(default="low", alias="PLATE_AGENT_EFFORT")
+    # Where plate photos are written. Local disk until Supabase Storage is wired.
+    photo_storage_dir: Path = Field(default=Path("var/photos"), alias="PHOTO_STORAGE_DIR")
+
+    # --- Telegram (Phase 1) ---
+    telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN", repr=False)
+    # Required for webhook mode; Telegram echoes it in X-Telegram-Bot-Api-Secret-Token.
+    telegram_webhook_secret: str | None = Field(
+        default=None, alias="TELEGRAM_WEBHOOK_SECRET", repr=False
+    )
+
     @field_validator("default_timezone")
     @classmethod
     def _valid_timezone(cls, value: str) -> str:
         ZoneInfo(value)
+        return value
+
+    @field_validator("plate_agent_effort")
+    @classmethod
+    def _valid_effort(cls, value: str) -> str:
+        if value not in {"low", "medium", "high", "xhigh", "max"}:
+            raise ValueError("PLATE_AGENT_EFFORT must be low|medium|high|xhigh|max")
         return value
 
     @field_validator("database_url")

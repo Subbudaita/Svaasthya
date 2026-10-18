@@ -1,0 +1,20 @@
+# How a perceived portion becomes grams.
+#
+# If the plate agent reports a quantity in the food's own INDB serving unit and
+# that unit is a countable piece (1 chapati, 3 idli), grams come from the table:
+# quantity x INDB grams-per-serving. Containers are not trusted that way: an
+# INDB "bowl" of dal is 277 g, a household katori is far less, so for these the
+# model's visual gram estimate is used instead and marked as an estimate.
+version: "2026-10-18"
+container_units:
+  - bowl
+  - small bowl
+  - curry bowl
+  - plate
+  - cup
+  - tea cup
+  - glass
+  - shallow dish
+  - souffle dish
+  - tablespoon
+  - teaspoon

@@ -34,6 +34,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Identity,
+    Index,
     Integer,
     Numeric,
     SmallInteger,
@@ -206,9 +207,18 @@ class Meal(Base):
     log_method: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
     photo_path: Mapped[str | None] = mapped_column(Text)
+    # Current items after deterministic analysis (grams, source, per-item nutrients).
     items: Mapped[list[Any]] = _jsonb_list()
+    # What perception originally returned, kept unchanged when the user corrects it.
+    perceived_items: Mapped[list[Any]] = _jsonb_list()
     # Deterministically computed from nutrition tables — never LLM-generated.
     nutrients: Mapped[dict[str, Any] | None]
+    # Balanced-plate rule id and its sentence.
+    plate_read: Mapped[dict[str, Any] | None]
+    # Model, latency, token usage of the perception call(s).
+    analysis_meta: Mapped[dict[str, Any]] = _jsonb_obj()
+    # Channel message this meal's card was sent as, e.g. "telegram:<chat>:<msg>".
+    source_ref: Mapped[str | None] = mapped_column(Text)
     repeat_of_meal_id: Mapped[uuid.UUID | None]
     corrected_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = _created()
@@ -221,6 +231,8 @@ class Meal(Base):
             name="meals_repeat_of_fkey",
         ),
         CheckConstraint(_in("log_method", LOG_METHODS), name="log_method_valid"),
+        Index("meals_user_eaten_at_idx", "user_id", "eaten_at"),
+        Index("meals_user_source_ref_idx", "user_id", "source_ref"),
     )
 
 
@@ -466,6 +478,50 @@ class AuditLog(Base):
     contract_clause: Mapped[str | None] = mapped_column(Text)
     evidence: Mapped[dict[str, Any]] = _jsonb_obj()
     payload: Mapped[dict[str, Any]] = _jsonb_obj()
+
+
+# --- Channels ---------------------------------------------------------------
+
+LINKED_CHANNELS = ("telegram",)
+
+
+class ChannelIdentity(Base):
+    """Maps an external account (a Telegram user id) to a Swasthya user.
+
+    Inbound webhooks arrive with no user context, so lookups go through the
+    narrow SECURITY DEFINER function ``app.resolve_channel_user``.
+    """
+
+    __tablename__ = "channel_identities"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    channel: Mapped[str] = mapped_column(Text)
+    external_id: Mapped[str] = mapped_column(Text)
+    linked_at: Mapped[datetime] = _created()
+
+    __table_args__ = (
+        UniqueConstraint("channel", "external_id", name="channel_identities_external_key"),
+        UniqueConstraint("user_id", "channel", name="channel_identities_user_channel_key"),
+        CheckConstraint(_in("channel", LINKED_CHANNELS), name="channel_valid"),
+    )
+
+
+class ChannelLinkCode(Base):
+    """One-time code a signed-in user sends to the bot to link the channel."""
+
+    __tablename__ = "channel_link_codes"
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = _user_fk()
+    channel: Mapped[str] = mapped_column(Text)
+    # sha256 hex of the code; the code itself is never stored.
+    code_hash: Mapped[str] = mapped_column(Text, unique=True)
+    expires_at: Mapped[datetime]
+    used_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+
+    __table_args__ = (CheckConstraint(_in("channel", LINKED_CHANNELS), name="channel_valid"),)
 
 
 # --- Cost control -----------------------------------------------------------

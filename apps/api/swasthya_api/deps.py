@@ -9,11 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from swasthya_api.auth import CurrentPrincipal
 from swasthya_api.budget import TokenBudget
 from swasthya_api.db.session import user_session
+from swasthya_api.services import Services
 from swasthya_api.settings import Settings, get_settings
 
 
+def get_services(request: Request) -> Services:
+    return request.app.state.services
+
+
+CurrentServices = Annotated[Services, Depends(get_services)]
+
+
 def get_engine(request: Request) -> AsyncEngine:
-    return request.app.state.engine
+    return request.app.state.services.engine
 
 
 async def get_user_db(

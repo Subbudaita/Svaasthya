@@ -1,12 +1,30 @@
 {
-  "_status": "PROVISIONAL — pillar names not fixed by docs/PLAN.md; confirm before Phase 2.",
-  "_source": "Derived from the plan's leading indicators (F12) and specialist split (§5).",
+  "_source": "Derived from the plan's leading indicators (F12) and specialist split (\u00a75).",
   "pillars": [
-    { "key": "nutrition", "label": "Nutrition" },
-    { "key": "eating_window", "label": "Eating window" },
-    { "key": "movement", "label": "Movement" },
-    { "key": "sleep", "label": "Sleep" },
-    { "key": "hydration", "label": "Hydration" },
-    { "key": "mind", "label": "Mind" }
-  ]
+    {
+      "key": "nutrition",
+      "label": "Nutrition"
+    },
+    {
+      "key": "eating_window",
+      "label": "Eating window"
+    },
+    {
+      "key": "movement",
+      "label": "Movement"
+    },
+    {
+      "key": "sleep",
+      "label": "Sleep"
+    },
+    {
+      "key": "hydration",
+      "label": "Hydration"
+    },
+    {
+      "key": "mind",
+      "label": "Mind"
+    }
+  ],
+  "_status": "Confirmed 2026-10-18."
 }
