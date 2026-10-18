@@ -8,11 +8,11 @@ API role: it can only create a user by acting as that user.
 """
 
 import argparse
-import asyncio
 import uuid
 
 from sqlalchemy.dialects.postgresql import insert
 
+from swasthya_api import aio
 from swasthya_api.channels import issue_link_code
 from swasthya_api.db.models import User
 from swasthya_api.db.session import user_session
@@ -75,9 +75,9 @@ def main() -> None:
     q.add_argument("question")
     args = parser.parse_args()
     if args.cmd == "create-user":
-        asyncio.run(create_user(args.email, args.timezone))
+        aio.run(create_user(args.email, args.timezone))
     elif args.cmd == "ask":
-        asyncio.run(ask(args.user_id, args.question))
+        aio.run(ask(args.user_id, args.question))
 
 
 if __name__ == "__main__":

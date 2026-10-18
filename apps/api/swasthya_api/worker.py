@@ -14,6 +14,7 @@ import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from swasthya_api import aio
 from swasthya_api.nudges import NudgeService
 from swasthya_api.rituals import RitualService
 from swasthya_api.services import build_services
@@ -76,4 +77,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    asyncio.run(main())
+    aio.run(main())

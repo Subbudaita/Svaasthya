@@ -30,7 +30,7 @@ ask:
 	uv run --env-file .env python -m swasthya_api.devtools ask --user-id $(or $(USER_ID),$(USER)) "$(Q)"
 
 api:
-	uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload
+	uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload --loop swasthya_api.aio:new_event_loop
 
 # The worker: ritual scheduler + Telegram bot by long polling (no public URL needed).
 telegram:

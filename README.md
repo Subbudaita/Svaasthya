@@ -83,7 +83,7 @@ as `swasthya_api`.
 **5. Run the API**
 
 ```sh
-uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload
+uv run --env-file .env uvicorn --factory swasthya_api.main:create_app --reload --loop swasthya_api.aio:new_event_loop
 curl localhost:8000/health/ready     # {"status":"ready",...}
 ```
 

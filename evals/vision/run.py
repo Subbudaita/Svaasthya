@@ -6,7 +6,6 @@ Spends real tokens. Uses the same agent, effort and table as production.
 """
 
 import argparse
-import asyncio
 import json
 import os
 import sys
@@ -15,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import anthropic
+from swasthya_api import aio
 from swasthya_engines.nutrition import FoodTable, PlateRules, PortionRules
 from swasthya_engines.plate import ItemIn, analyse
 from swasthya_ingestion.images import prepare_image
@@ -108,4 +108,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    aio.run(main())
