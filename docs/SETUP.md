@@ -67,10 +67,34 @@ Put meal photos in `evals/vision/golden/` with one line each in
 `labels.jsonl` (format in `evals/vision/README.md`), then run
 `make eval-vision`.
 
+## No `make`? Run the commands directly
+
+`make` is only a shortcut. On Windows, or a Mac without developer tools
+(`xcode-select --install` adds it), run these from the repository folder
+instead:
+
+| `make …` | Same thing without make |
+|---|---|
+| `make install` | `uv sync --group data` then `cd apps/web` → `npm ci` → `cd ../..` |
+| `make db` | `docker compose up -d --wait db` |
+| `make migrate` | `cd apps/api` → `uv run --env-file ../../.env alembic upgrade head` → `cd ../..` |
+| `make indb` | `git clone --depth 1 https://github.com/lindsayjaacks/indian-nutrient-databank-indb- var/indb` then `uv run --group data python scripts/import_indb.py var/indb/INDB.xlsx` |
+| `make dev-user EMAIL=you@example.com` | `uv run --env-file .env python -m swasthya_api.devtools create-user --email you@example.com` |
+| `make telegram` | `uv run --env-file .env python -m swasthya_api.worker` |
+| `make ask USER_ID=… Q="…"` | `uv run --env-file .env python -m swasthya_api.devtools ask --user-id … "…"` |
+| `make test` | `uv run pytest` |
+
+`npm ci` ends with "2 vulnerabilities (1 moderate, 1 high)". That's a
+warning, not a failure: it's PostCSS bundled inside Next.js, a build tool,
+and it doesn't affect running the app.
+
 ## If something fails
 
 | Symptom | Fix |
 |---|---|
+| `make: command not found` | Use the table above, or install make |
+| `uv: command not found` right after installing uv | Close and reopen the terminal so it picks up the new PATH |
+| `npm: command not found` | Install Node 20+ (nodejs.org), reopen the terminal |
 | `make db` / `make migrate` errors | Docker isn't running |
 | Bot says "isn't set up on the server" | `ANTHROPIC_API_KEY` missing, or `make indb` not run |
 | Bot doesn't answer at all | `make telegram` isn't running, or the token is wrong |
